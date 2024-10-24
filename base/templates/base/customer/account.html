@@ -1,0 +1,252 @@
+{% extends 'base/layout.html' %}
+
+{% block title %} Customer Account {% endblock %}
+
+{% block stylesheet %}
+
+{% endblock %}
+
+{% block content %}
+
+
+<section class="pt-3 pb-4" id="count-stats">
+    
+    <div class="p-3 shadow-blur">
+      <div class="container">
+        <div class="page-header min-height-300 border-radius-xl mt-4" style="
+              background-image: url('/static/assets/img/curved-images/curved.jpg');
+              background-position-y: 50%;
+            "></div>
+        <div class="card card-body blur mx-4 mt-n9 overflow-hidden">
+          <form id="update-customer-form" class="row gx-4" method="POST" action="{% url 'update-customer-information' %}" enctype="multipart/form-data">
+            <input type="hidden" value="{{ customer.user.id }}" name="customer_id">
+            {% csrf_token %}
+              <div class="col-md-3 z-index-1  ">
+                <div class="section ">
+                  <section class="z-index-1  text-center">
+                    <div class="fileinput fileinput-new text-center" data-provides="fileinput">
+                      <div id="profile-pic-container" class="mb-3">
+                          <img id="profile-pic" src="{{ customer.avatar.url }}" alt="Profile Picture" class="img-fluid rounded-circle" style="width: 150px; height: 150px;">
+                      </div>
+                      <div class="mb-3">
+                          <input type="file" id="file-input" name="avatar" class="d-none" accept="image/*">
+                          <button id="change-profile-btn" type="button" class="btn btn-sm btn-secondary">Change Profile</button>
+                      </div>
+                    </div>
+                      <h3 class="title mt-4 text-capitalize">{{ patient.user.first_name }} {{ patient.user.last_name }} </h3>
+                  </section>
+        
+                </div>
+              </div>
+              <div class="col-md-8 ml-auto z-index-2">
+                <div class="">
+         
+            
+                    <p class="text-uppercase text-sm">User Information</p>
+                    <div class="row">
+
+                      <div class="col-md-6">
+                        <div class="form-group">
+                        <label for="example-text-input" class="form-control-label">Firstname</label>
+                        <input class="form-control" type="text" name="firstname" value="{{ customer.user.first_name }}">
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <div class="form-group">
+                        <label for="example-text-input" class="form-control-label">Lastname</label>
+                        <input class="form-control" type="text" name="lastname" value="{{ customer.user.last_name }}">
+                        </div>
+                      </div>
+
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="example-text-input"  class="form-control-label">Email address</label>
+                                <input class="form-control" type="email" name="email" value="{{ customer.user.email }}">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <hr class="horizontal dark">
+
+                    <p class="text-uppercase text-sm">Contact Information</p>
+                    <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                <label for="example-text-input" class="form-control-label">Contact Number</label>
+                                <input class="form-control" type="text" name="contact_number" value="{{ customer.phone_number }}">
+                                </div>
+                            </div>
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label for="example-text-input" class="form-control-label">Address</label>
+                                <input class="form-control" type="text" name="address" value="{{ customer.address }}">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <button type="submit" class="d-flex align-items-end btn btn-outline-info">Save Changes</button>
+
+              
+
+                </div>
+             </div>
+
+
+
+
+
+            </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+
+      <div class="row mt-3">
+
+   
+      
+      </div>
+    </div>
+
+   
+</section>
+
+
+
+  <!--- MODALS -->
+
+
+
+{% endblock %}
+
+
+{% block js %}
+
+
+<script>
+  $('#update-customer-form').on('submit', function(e) {
+    e.preventDefault(); 
+    var form = $(this);
+    var formData = new FormData(this);
+
+    $.ajax({
+        type: form.attr('method'),
+        url: form.attr('action'),
+        data: formData,
+        contentType: false,
+        processData: false, 
+        success: function(response) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: response.message,
+                showConfirmButton: true,
+
+            }).then(function() {
+                location.reload();  
+            });
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong! ' + xhr.responseJSON.message,
+            });
+        }
+    });
+});
+
+</script>
+
+<script>
+  document.getElementById('change-profile-btn').addEventListener('click', function() {
+    document.getElementById('file-input').click(); 
+});
+
+
+document.getElementById('file-input').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('profile-pic').src = e.target.result; 
+        };
+        reader.readAsDataURL(file); 
+    }
+});
+
+
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    function calculateEstimatedBill() {
+    
+      const eventCards = document.querySelectorAll('.card');
+      console.log('Event Cards:', eventCards); 
+      
+     
+      eventCards.forEach(card => {
+        const eventId = card.id.split('_')[1];
+        console.log('Processing Event ID:', eventId); 
+        
+       
+        const prices = card.querySelectorAll('.service-price');
+        console.log('Prices for Event:', prices); 
+        
+        let total = 0;
+
+     
+        prices.forEach(priceElement => {
+          const priceText = priceElement.textContent.trim().replace('₱', '').replace(',', '');
+          const price = parseFloat(priceText);
+          if (!isNaN(price)) {
+            total += price;
+          }
+        });
+
+        console.log('Total Estimated Bill for Event:', total); 
+        
+        
+        const estimatedBillElement = card.querySelector(`#estimated_bill_${eventId}`);
+        if (estimatedBillElement) {
+          estimatedBillElement.textContent = '₱ ' + total.toFixed(2);
+          console.log('Updated Estimated Bill Element:', estimatedBillElement);
+        }
+
+       
+        const budgetElement = card.querySelector(`#budget_${eventId}`);
+        const budgetNoteElement = card.querySelector(`#budget_note_${eventId}`);
+
+        if (budgetElement && estimatedBillElement && budgetNoteElement) {
+          const budgetText = budgetElement.textContent.trim().replace('₱', '').replace(',', '');
+          const budget = parseFloat(budgetText);
+          
+          console.log('Budget for Event:', budget); 
+
+          if (budget && total > budget) {
+            budgetNoteElement.classList.remove('d-none');
+            console.log('Budget Note: The estimated bill exceeds the budget.'); 
+          } else {
+            budgetNoteElement.classList.add('d-none');
+            console.log('Budget Note: The estimated bill is within the budget.'); 
+          }
+        }
+      });
+    }
+    
+    calculateEstimatedBill();
+  });
+</script>
+
+
+
+
+
+{% endblock %}

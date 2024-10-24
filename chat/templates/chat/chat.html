@@ -1,0 +1,267 @@
+{% extends 'base/layout.html' %}
+
+{% block title %} Inbox {% endblock %}
+
+{% block stylesheet %}
+<style>
+  
+    #chat_messages {
+        max-height: 400px;
+        overflow-y: auto; 
+        overflow-x: hidden; 
+        scrollbar-width: thin;
+        scrollbar-color: #888 #f1f1f1; 
+    }
+    
+    /* For WebKit browsers (Chrome, Safari) */
+    #chat_messages::-webkit-scrollbar {
+        width: 8px; 
+    }
+    
+    #chat_messages::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    
+    #chat_messages::-webkit-scrollbar-thumb {
+        background: #888; 
+        border-radius: 10px; 
+    }
+    
+    #chat_messages::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    @media (max-width: 768px) {
+        .pt-3.pb-4 .container {
+          max-width: 100%;
+          padding: 0;
+        }
+      }
+
+   
+      #chat_messages::-webkit-scrollbar {
+          width: 0; 
+      }
+      
+   
+      #chat_messages {
+          scrollbar-width: none; 
+      }
+      
+   
+      #chat_messages {
+          overflow-y: scroll;
+      }
+      
+      .new-message {
+        background-color: #f0f8ff; /* Light blue background */
+        border-left: 4px solid #007bff; /* Blue left border */
+        animation: pulse 1s infinite; /* Optional pulse animation */
+        font-weight: bold;
+    }
+
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+
+<section class="pt-3 pb-4 test">
+    <div class="p-3 shadow-blur">
+        <div class="container">
+          <div class="page-header min-height-150 border-radius-xl mt-4" style="
+                background-image: url('/static/assets/img/curved-images/curved.jpg');
+                background-position-y: 50%;
+              "></div>
+
+
+
+              
+            <div class="mx-4 mt-n6 overflow-hidden chat-groups-container" style="height: 75vh;">
+                <div class="py-4 h-100">
+                    <div class="row h-100">
+                        <div class="col-lg-4 col-md-5 col-12 h-100">
+                            <div class="card blur shadow-blur h-100 overflow-auto overflow-x-hidden mb-5 mb-lg-0">
+                                <div class="card-header p-3">
+                                    <h6>Inbox</h6>
+                                </div>
+                                <div class="card-body p-2 chat-groups">
+                                    {% for info in groups_info reversed %}
+                                        <div class="group">
+                                            <a href="{% url 'chatroom' info.group.group_name %}" 
+                                               class="d-flex p-2 member border-bottom {% if not info.last_message_is_seen %} new-message {% endif %}" 
+                                               data-group-id="{{ info.group.id }}" 
+                                               data-group-name="{{ info.group.group_name }}">
+                                               {% if info.other_members %}
+                                               <img src="{{ info.other_members.0.avatar }}" alt="{{ info.other_members.0.username }}'s avatar" class="avatar">
+                                                {% else %}
+                                                    <img src="/static/images/default-avatar.png" alt="Default avatar" class="avatar">
+                                                {% endif %}
+                                                <div class="ms-3">
+                                                    {% for member in info.other_members %}
+                                                    <h6 class="mb-0 text-capitalize">{{ member.first_name }} {{ member.last_name }}</h6> <!-- Change to username or the appropriate field -->
+                                                    {% endfor %}
+                                                    <p class="text-sm mb-2 {% if not info.last_message_is_seen %} font-weight-bold {% else %} text-muted {% endif %}">{{ info.last_message }}</p>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    {% empty %}
+                                        <li>No private chat found.</li>
+                                    {% endfor %}
+                                </div>
+                                
+                            </div>
+                        </div>
+            
+                        <div class="col-lg-8 col-md-7 col-12 h-100">
+                            <div class="card blur shadow-blur h-100" id="chat_container">
+                                <div class="card-header shadow-lg">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="d-flex align-items-center">
+                                                <div class="ms-3">
+                                                    <h6 class="mb-0 d-block text-uppercase chat-header-name">
+                                                        {% if other_user %}
+                                                            {{ other_user.first_name }} {{ other_user.last_name }}
+                                                        {% endif %}
+                                                    </h6>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body overflow-auto" id="chat_messages" style="max-height: calc(100vh - 200px);">
+                                    {% for message in chat_messages reversed %}
+                                        {% include 'chat/chat_message.html' %}
+                                    {% endfor %}
+                                </div>
+                                <div class="card-footer d-block">
+                                    <form id="chat_file_form" enctype="multipart/form-data" class="d-flex justify-content-between align-items-center mb-0"
+                                        hx-post="{% url 'chat-file-upload' chat_group.group_name %}"
+                                        hx-target="#chat_messages"
+                                        hx-swap="beforeend"
+                                        _="on htmx:afterRequest resetFileInput()"
+                                    >
+                                        {% csrf_token %}
+                                        <div class="form-group">
+                                            <label for="uploadImages" class="custom-file-upload btn-outline-info cursor-pointer">
+                                                <i class="fas fa-upload"></i> Send a file
+                                            </label>
+                                            <input type="file" id="uploadImages" name="file" style="display: none;" onchange="displayFileName()">
+                                            <span id="fileName" class="ms-2"></span>
+                                        </div>
+                                        <button type="submit" class="btn btn-sm bg-gradient-primary mb-0 ms-2">
+                                            <i class="ni ni-send"></i> Send file
+                                        </button>
+                                    </form>
+                        
+                                    <form class="align-items-center mt-0"
+                                        hx-ext="ws"
+                                        ws-connect="/ws/chatroom/{{ chatroom_name }}/"
+                                        ws-send
+                                        _="on htmx:wsAfterSend reset() me"
+                                        onsubmit="return validateMessage()"
+                                    >
+                                        {% csrf_token %}
+                                        <div class="d-flex">
+                                            <div class="input-group">
+                                                <input type="text" name="message" id="messageInput" class="form-control" required placeholder="Type here" aria-label="Message example input" onfocus="focused(this)" onfocusout="defocused(this)">
+                                            </div>
+                                            <!--
+                                            <button type="submit" id="sendButton" class="btn bg-gradient-primary mb-0 ms-2">
+                                                <i class="ni ni-send"></i>
+                                            </button>
+                                            -->
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+
+
+</section>
+
+
+
+{% endblock %}
+
+
+
+
+{% block js %}
+
+<script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
+
+
+<script>
+    function checkInput() {
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+       
+        sendButton.disabled = messageInput.value.trim() === '';
+    }
+
+    // Optional validation before sending
+    function validateMessage() {
+        const messageInput = document.getElementById('messageInput');
+        if (messageInput.value.trim() === '') {
+            return false; 
+        }
+        return true;
+    }
+</script>
+
+
+<script>
+
+
+    function displayFileName() {
+        const uploadInput = document.getElementById('uploadImages');
+        const fileNameDisplay = document.getElementById('fileName');
+        
+        if (uploadInput.files.length > 0) {
+            fileNameDisplay.textContent = uploadInput.files[0].name;
+        } else {
+            fileNameDisplay.textContent = '';
+        }
+    }
+
+    function resetFileInput() {
+        const uploadInput = document.getElementById('uploadImages');
+        const fileNameDisplay = document.getElementById('fileName');
+        uploadInput.value = '';
+        fileNameDisplay.textContent = ''; 
+    }
+
+</script>
+
+
+
+
+<script>
+
+function scrollToBottom(time=0) {
+    setTimeout(function() {
+        const container = document.getElementById('chat_messages')
+        container.scrollTop = container.scrollHeight;
+    }, time);
+
+}
+
+scrollToBottom()
+
+</script>
+
+
+
+
+{% endblock %}
